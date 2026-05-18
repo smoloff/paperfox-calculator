@@ -1,0 +1,150 @@
+.calculator-wrapper {
+  max-width: 400px;
+  font-family: 'Montserrat', sans-serif; /* Або ваш корпоративний шрифт */
+  color: #1a1a1a;
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.flex-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.separator {
+  font-size: 18px;
+  color: #333;
+}
+
+input[type="number"], select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input[type="number"]:focus, select:focus {
+  border-color: #666;
+}
+
+select {
+  margin-bottom: 10px;
+  appearance: auto; /* Можна кастомізувати стрілку за потреби */
+}
+
+.hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #888;
+}
+
+.result-box {
+  margin-top: 32px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.result-box .error {
+  color: #d32f2f;
+  font-weight: 500;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed #ddd;
+  padding-bottom: 4px;
+}
+
+.result-row:last-child {
+  border-bottom: none;
+}
+
+.result-total {
+  font-weight: bold;
+  font-size: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 2px solid #ddd;
+}
+
+/* Стилі для кнопки "Комерційна пропозиція" */
+#add-proposal-btn {
+  margin-top: 12px;
+  padding: 8px 16px;
+  background-color: transparent;
+  border: 1px solid #1a1a1a;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  color: #1a1a1a;
+  transition: all 0.2s ease;
+}
+
+#add-proposal-btn:hover {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+/* Обгортка для полів тиражу */
+.quantity-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+/* Кнопка видалення додаткового поля тиражу */
+.remove-qty-btn {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+  padding: 0 5px;
+  transition: opacity 0.2s;
+}
+
+.remove-qty-btn:hover {
+  opacity: 0.7;
+}
+
+/* Стилі для карток з результатами різних тиражів */
+.proposal-block {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  padding: 16px;
+  margin-top: 16px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.proposal-title {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 8px;
+  color: #1a1a1a;
+}
