@@ -1,114 +1,108 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Калькулятор Брошур</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="calculator-wrapper">
-  <!-- Розмір -->
-  <div class="form-group">
-    <label>Розмір готового виробу, мм</label>
-    <div class="flex-row">
-      <input type="number" id="calc-width" placeholder="ширина, мм" min="10">
-      <span class="separator">X</span>
-      <input type="number" id="calc-height" placeholder="висота, мм" min="10">
+        <div class="form-group">
+            <label>Розмір готового виробу, мм</label>
+            <div class="flex-row">
+                <input type="number" id="calc-width" placeholder="ширина, мм" min="10" value="210">
+                <span class="separator">X</span>
+                <input type="number" id="calc-height" placeholder="висота, мм" min="10" value="297">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Спосіб скріплення</label>
+            <select id="binding-type">
+                <option value="spring-plastic">На пластикову пружину</option>
+                <option value="spring-metal">На металеву пружину</option>
+                <option value="staple">На скобу</option>
+                <option value="glue">Термобіндер (клей)</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="block-standard-cover" style="display: none;">
+            <label>Обкладинка</label>
+            <select id="standard-cover-material"></select>
+            <select id="standard-cover-print">
+                <option value="4+4">Друк 4+4</option>
+                <option value="4+0">Друк 4+0</option>
+                <option value="1+1">Друк 1+1</option>
+                <option value="1+0">Друк 1+0</option>
+            </select>
+            <select id="standard-cover-lamination"></select>
+        </div>
+
+        <div class="form-group" id="block-spring-options">
+            <label>Опції для пружини</label>
+            <select id="spring-base-set">
+                <option value="plastic-white">Прозорий пластик + Біла підкладка</option>
+                <option value="plastic-plastic">Прозора обкладинка + Прозора підкладка</option>
+                <option value="none">Без комплекту</option>
+            </select>
+            
+            <div style="margin-top: 10px;">
+                <label><input type="checkbox" id="spring-has-custom-cover"> Кастомна обкладинка (друк)</label>
+                <div id="spring-custom-cover-options" style="display: none; margin-top: 5px;">
+                    <select id="spring-custom-cover-material"></select>
+                    <select id="spring-custom-cover-print">
+                        <option value="4+4">Друк 4+4</option>
+                        <option value="4+0">Друк 4+0</option>
+                        <option value="1+1">Друк 1+1</option>
+                        <option value="1+0">Друк 1+0</option>
+                    </select>
+                    <select id="spring-custom-cover-lamination"></select>
+                </div>
+            </div>
+
+            <div style="margin-top: 10px;">
+                <label><input type="checkbox" id="spring-has-custom-backing"> Кастомна підкладка (друк)</label>
+                <div id="spring-custom-backing-options" style="display: none; margin-top: 5px;">
+                    <select id="spring-custom-backing-material"></select>
+                    <select id="spring-custom-backing-print">
+                        <option value="4+4">Друк 4+4</option>
+                        <option value="4+0">Друк 4+0</option>
+                        <option value="1+1">Друк 1+1</option>
+                        <option value="1+0">Друк 1+0</option>
+                    </select>
+                    <select id="spring-custom-backing-lamination"></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Наповнення</label>
+            <select id="inner-material"></select>
+            <select id="inner-print-type">
+                <option value="4+4">Друк 4+4 (Колір)</option>
+                <option value="4+0">Друк 4+0 (Колір)</option>
+                <option value="1+1">Друк 1+1 (Ч/Б)</option>
+                <option value="1+0">Друк 1+0 (Ч/Б)</option>
+            </select>
+            <input type="number" id="inner-pages" placeholder="сторінок, шт" min="1" value="10">
+            <small class="hint" id="inner-pages-hint">Кількість сторінок має бути парною</small>
+        </div>
+
+        <div class="form-group">
+            <label>Кількість екземплярів</label>
+            <div id="quantity-container">
+                <div class="quantity-row">
+                    <input type="number" class="calc-quantity" placeholder="шт" min="1" value="1">
+                </div>
+            </div>
+            <button type="button" id="add-proposal-btn">+ Комерційна пропозиція</button>
+        </div>
+
+        <div id="calc-result" class="result-box">
+            Завантаження даних з бази...
+        </div>
     </div>
-  </div>
-
-    <!-- Тип скріплення -->
-  <div class="form-group">
-    <label>Спосіб скріплення</label>
-    <select id="binding-type">
-      <option value="staple">На скобу</option>
-      <option value="spring">На пружину</option>
-      <option value="glue">Термобіндер (клей)</option>
-    </select>
-  </div>
-
-  <!-- Обкладинка: Стандарт (для скоби або клею) -->
-  <div id="cover-block-standard" class="form-group">
-    <label>Обкладинка</label>
-    <select id="cover-material">
-      <option value="upm-silk-250">UPM Finesse Silk 250 г/м²</option>
-      <option value="upm-silk-300">UPM Finesse Silk 300 г/м²</option>
-    </select>
-    <select id="cover-print">
-      <option value="4+0">Друк 4+0 (Колір зовні)</option>
-      <option value="4+4">Друк 4+4 (Колір з обох боків)</option>
-      <option value="1+0">Друк 1+0 (Ч/Б зовні)</option>
-      <option value="1+1">Друк 1+1 (Ч/Б з обох боків)</option>
-    </select>
-    <select id="cover-lamination">
-      <option value="none">Без ламінування</option>
-      <option value="gloss-1+0">Глянцева 1+0</option>
-      <option value="matt-1+0">Матова 1+0</option>
-      <option value="soft-1+0">Soft-touch 1+0</option>
-    </select>
-  </div>
-
-  <!-- Обкладинка: Пружина (дві окремі деталі) -->
-  <div id="cover-block-spring" class="form-group" style="display: none;">
-    <div style="margin-bottom: 15px;">
-      <label style="font-size: 14px; color: #666;">Передня обкладинка</label>
-      <select id="cover-spring-front-material">
-        <option value="upm-silk-300">UPM Finesse Silk 300 г/м²</option>
-        <option value="plastic-transparent">Пластик прозорий (без друку)</option>
-      </select>
-      <select id="cover-spring-front-print">
-        <option value="4+0">Друк 4+0</option>
-        <option value="0+0">Без друку</option>
-      </select>
-    </div>
-    <div>
-      <label style="font-size: 14px; color: #666;">Задня обкладинка</label>
-      <select id="cover-spring-back-material">
-        <option value="upm-silk-300">UPM Finesse Silk 300 г/м²</option>
-        <option value="cardboard-white">Картон білий 300 г/м²</option>
-      </select>
-      <select id="cover-spring-back-print">
-        <option value="4+0">Друк 4+0</option>
-        <option value="0+0">Без друку</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Наповнення -->
-  <div class="form-group">
-    <label>Наповнення</label>
-    <select id="inner-material">
-      <option value="mondi-100">Mondi ColorCopy 100 г/м²</option>
-      <option value="mondi-120">Mondi ColorCopy 120 г/м²</option>
-      <option value="creamy-80">Книжковий кремовий 80 г/м²</option>
-    </select>
-    <select id="inner-print">
-      <option value="4+4">Друк 4+4 (Колір)</option>
-      <option value="1+1">Друк 1+1 (Ч/Б)</option>
-    </select>
-    <input type="number" id="inner-pages" placeholder="сторінок, шт" min="2">
-    <small id="pages-hint" class="hint">Для скоби кількість сторінок має бути кратною 4</small>
-  </div>
-
-
-  <!-- Тираж -->
-<div class="form-group">
-  <label>Кількість екземплярів</label>
-  <div id="quantity-container">
-    <!-- Перше базове поле тиражу -->
-    <div class="quantity-row">
-      <input type="number" class="calc-quantity" placeholder="шт" min="1">
-    </div>
-  </div>
-  <button type="button" id="add-proposal-btn">+ Комерційна пропозиція</button>
-</div>
-
-<!-- Результати -->
-<div id="calc-result" class="result-box">
-  Введіть розміри та хоча б один тираж для розрахунку
-</div>
-</div>
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
