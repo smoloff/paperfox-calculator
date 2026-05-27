@@ -278,6 +278,22 @@ document.addEventListener("DOMContentLoaded", () => {
             resultBox.innerHTML = '<span style="color:#666;">Введіть коректні дані</span>';
             return;
         }
+
+        // Перевірка: скоба — розворот не може перевищувати 420мм
+        // Фінальний розмір ≤ 210мм по ширині (менша сторона)
+        if (type === 'staple') {
+            const shortSide = Math.min(w, h);
+            const spread = shortSide * 2; // розворот по ширині
+            if (spread > 420) {
+                resultBox.innerHTML = `
+                    <div class="error">
+                        ⚠️ Скоба недоступна для цього формату.<br>
+                        Розворот обкладинки: <strong>${spread}мм</strong> — перевищує максимум 420мм.<br>
+                        Максимальний розмір для скоби: <strong>210мм</strong> по меншій стороні.
+                    </div>`;
+                return;
+            }
+        }
   
         const SRA3_W = 310, SRA3_H = 440, BLEED = 4;
         const isSpread = type === 'staple' || type === 'glue';
@@ -412,7 +428,11 @@ document.addEventListener("DOMContentLoaded", () => {
             let bindingName = '';
             if (type === 'staple') bindingName = MAPPING.binding['staple'];
             else if (type === 'glue') bindingName = MAPPING.binding['glue'];
-            else if (type === 'spring-plastic') bindingName = pages < 120 ? MAPPING.binding['spring-plastic-small'] : MAPPING.binding['spring-plastic-large'];
+            else if (type === 'spring-plastic') {
+                // А3 формат — використовуємо ціну металевої А3 пружини
+                if (Math.max(w, h) > 297) bindingName = MAPPING.binding['spring-metal-a3'];
+                else bindingName = pages < 120 ? MAPPING.binding['spring-plastic-small'] : MAPPING.binding['spring-plastic-large'];
+            }
             else if (type === 'spring-metal') bindingName = (Math.max(w, h) > 297) ? MAPPING.binding['spring-metal-a3'] : MAPPING.binding['spring-metal-a4'];
             
             const bindPrice = getTierPrice(bindingName, qty);
@@ -424,24 +444,67 @@ document.addEventListener("DOMContentLoaded", () => {
             console.group(`🧾 Тираж ${qty} шт. | Разом: ${totalCost.toFixed(2)} ₴`);
             debugLines.forEach(l => console.log(l));
             console.groupEnd();
-  
-            const unitPrice = (totalCost / qty).toFixed(2);
+
+            // ─── ОПИС ЗАМОВЛЕННЯ ─────────────────────────────────────
+            const bindingLabels = {
+                'staple':        'На скобу',
+                'glue':          'Термобіндер (клей)',
+                'spring-plastic':'На пластикову пружину',
+                'spring-metal':  'На металеву пружину'
+            };
+            const orientation = w >= h ? 'Альбомна' : 'Книжна';
+
+            // Обкладинка
+            let coverDesc = '';
+            if (type === 'staple' || type === 'glue') {
+                const covMat = document.getElementById('standard-cover-material').value;
+                const covLam = document.getElementById('standard-cover-lamination').value;
+                const weightMatch = covMat.match(/(\d+)\s*г\/м/);
+                const weight = weightMatch ? weightMatch[1] + ' г/м²' : covMat;
+                const lamText = covLam !== 'none' ? `, ${covLam}` : ', без ламінування';
+                coverDesc = `Обкладинка: ${weight}${lamText}`;
+            } else {
+                // Пружина
+                const baseSet = document.getElementById('spring-base-set').value;
+                if (baseSet === 'plastic-white') coverDesc = 'Комплект: прозора обкладинка + білий щільний аркуш';
+                else if (baseSet === 'plastic-plastic') coverDesc = 'Комплект: прозора обкладинка + прозора підкладка';
+                else coverDesc = 'Без стандартного комплекту';
+
+                if (document.getElementById('spring-has-custom-cover').checked) {
+                    const mat = document.getElementById('spring-custom-cover-material').value;
+                    const lam = document.getElementById('spring-custom-cover-lamination').value;
+                    const lamText = lam !== 'none' ? `, ${lam}` : '';
+                    coverDesc += `<br>Кастомна обкладинка: ${mat}${lamText}`;
+                }
+                if (document.getElementById('spring-has-custom-backing').checked) {
+                    const mat = document.getElementById('spring-custom-backing-material').value;
+                    const lam = document.getElementById('spring-custom-backing-lamination').value;
+                    const lamText = lam !== 'none' ? `, ${lam}` : '';
+                    coverDesc += `<br>Кастомна підкладка: ${mat}${lamText}`;
+                }
+            }
+
             const totalStr = totalCost.toFixed(2);
-  
+
             resultsHTML += `
                 <div class="proposal-block" style="border:1px solid #ccc;padding:15px;margin-bottom:15px;border-radius:8px;background:#fff;">
                     <div style="font-size:16px;font-weight:bold;margin-bottom:10px;border-bottom:1px solid #eee;padding-bottom:5px;">
                         Тираж: ${qty} шт.
                     </div>
-                    <div style="margin-bottom:10px;color:#555;">${breakdownHTML}</div>
+
+                    <div style="font-size:13px;color:#555;margin-bottom:12px;line-height:1.7;">
+                        <div>📎 ${bindingLabels[type] || type}</div>
+                        <div>📐 ${orientation} | ${w}×${h} мм</div>
+                        <div>📄 Наповнення: ${innerMat}, ${pages} стор.</div>
+                        <div>🖨 ${coverDesc}</div>
+                    </div>
+
+                    <div style="margin-bottom:10px;color:#777;border-top:1px dashed #eee;padding-top:10px;">${breakdownHTML}</div>
+
                     <div style="color:#333;margin-top:10px;border-top:1px solid #eee;padding-top:10px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
                             <span>Всього до сплати:</span>
                             <strong style="font-size:18px;color:#2a7e2a;">${totalStr} ₴</strong>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#666;">
-                            <span>Собівартість 1 шт:</span>
-                            <strong>${unitPrice} ₴</strong>
                         </div>
                     </div>
                 </div>
