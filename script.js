@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let i = 2; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
             const currentline = splitLine(lines[i]);
-            const obj = {};
+            const obj = { _cols: currentline };
             for (let j = 0; j < headers.length; j++) {
                 if (headers[j]) obj[headers[j]] = currentline[j] || '';
             }
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     console.log('💰 Зразок цін для:', sampleRow['Найменування номенклатури']);
                     // Виводимо всі ключі та їх значення де є числа
                     Object.entries(sampleRow).forEach(([k, v]) => {
-                        if (v && !isNaN(parseFloat(v.replace(/\s/g, '').replace(',', '.')))) {
+                        if (v && !isNaN(parseFloat(v.toString().replace(/\s/g, '').replace(',', '.')))) {
                             console.log(`  Колонка "${k}" = "${v}"`);
                         }
                     });
@@ -130,6 +130,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 if ((group.includes('ПАПІР') || group.includes('КАРТОН')) && printType.includes('Лазерний')) {
                     window.materials.paper.push(name);
                     window.materialPrintType[name] = isWCMY ? 'W+CMY' : 'CMYK';
+                    if (window.priceBook[name]) {
+                        window.priceBook[name].articles = {
+                            '4+0': row._cols[1] || '',
+                            '4+4': row._cols[2] || '',
+                            '1+0': row._cols[3] || '',
+                            '1+1': row._cols[4] || ''
+                        };
+                    }
                 }
                 if (group.includes('ПОКРИТТЯ')) {
                     window.materials.lamination.push(name);
@@ -266,24 +274,21 @@ document.addEventListener("DOMContentLoaded", () => {
   
     function calculate() {
         if (Object.keys(window.priceBook).length === 0) return;
-  
+
         const w = parseFloat(document.getElementById('calc-width').value);
         const h = parseFloat(document.getElementById('calc-height').value);
         const pages = parseInt(innerPages.value) || 0;
         const type = bindingType.value;
         const qtyInputs = document.querySelectorAll('.calc-quantity');
         const quantities = Array.from(qtyInputs).map(i => parseInt(i.value)).filter(v => v > 0 && !isNaN(v));
-  
+
         if (!w || !h || quantities.length === 0) {
             resultBox.innerHTML = '<span style="color:#666;">Введіть коректні дані</span>';
             return;
         }
 
-        // Перевірка: скоба — розворот не може перевищувати 420мм
-        // Фінальний розмір ≤ 210мм по ширині (менша сторона)
         if (type === 'staple') {
-            const shortSide = Math.min(w, h);
-            const spread = shortSide * 2; // розворот по ширині
+            const spread = Math.min(w, h) * 2;
             if (spread > 420) {
                 resultBox.innerHTML = `
                     <div class="error">
@@ -294,224 +299,210 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
         }
-  
+
         const SRA3_W = 310, SRA3_H = 440, BLEED = 4;
         const isSpread = type === 'staple' || type === 'glue';
-        
-        const printW_cover = isSpread ? (w * 2) + BLEED : w + BLEED;
-        const printH_cover = h + BLEED;
-        const printW_inner = w + BLEED;
-        const printH_inner = h + BLEED;
-  
         const calcFit = (pw, ph) => Math.max(
             Math.floor(SRA3_W / pw) * Math.floor(SRA3_H / ph),
             Math.floor(SRA3_W / ph) * Math.floor(SRA3_H / pw)
         );
-  
-        const fitCover = calcFit(printW_cover, printH_cover);
-        const fitInner = calcFit(printW_inner, printH_inner);
-  
+        const fitCover = calcFit(isSpread ? (w * 2) + BLEED : w + BLEED, h + BLEED);
+        const fitInner = calcFit(w + BLEED, h + BLEED);
+
         if (fitCover === 0 || fitInner === 0) {
             resultBox.innerHTML = `<span class="error">Формат завеликий. Не поміщається на SRA3.</span>`;
             return;
         }
 
-        console.log(`📐 Розмір: ${w}×${h}мм | fitInner: ${fitInner} | fitCover: ${fitCover}`);
-  
-        let resultsHTML = '';
-        
-        quantities.forEach(qty => {
-            let totalCost = 0;
-            let breakdownHTML = '';
-            let debugLines = [];
-  
-            // ─── 1. НАПОВНЕННЯ ───────────────────────────────────────
-            // Скільки двосторонніх аркушів потрібно надрукувати:
-            // - Скоба (staple): двосторонній друк → pages / 2 (кожен SRA3 містить fitInner сторінок з кожного боку)
-            // - Клей (glue):    двосторонній друк → pages / 2
-            // - Пружина одностороння: pages (кожна сторінка = окремий аркуш)
-            // - Пружина двостороння:  pages / 2
-            let innerLeaves = 0;
-            if (type === 'staple') {
-                innerLeaves = pages / 2;  // ← ВИПРАВЛЕНО: було pages/4, що давало вдвічі менше
-            } else if (type === 'glue') {
-                innerLeaves = pages / 2;
-            } else {
-                const isTwoSided = innerPrintType.value === '4+4' || innerPrintType.value === '1+1';
-                innerLeaves = isTwoSided ? pages / 2 : pages;
-            }
-            
-            const totalInnerSheets = Math.ceil((innerLeaves * qty) / fitInner);
-            const innerMat = innerMaterial.value;
-            // Автовибір типу друку: W+CMY для темних паперів, CMYK для решти
-            const matType = window.materialPrintType[innerMat] || 'CMYK';
-            const printKey = matType === 'W+CMY'
-                ? (innerPrintType.value + '-wcmy')
-                : innerPrintType.value;
-            const innerPrintName = MAPPING.print[printKey] || MAPPING.print[innerPrintType.value];
+        const innerMat = innerMaterial.value;
+        const matType = window.materialPrintType[innerMat] || 'CMYK';
+        const innerPrintBaseKey = innerPrintType.value;
+        const innerPrintKey = matType === 'W+CMY' ? innerPrintBaseKey + '-wcmy' : innerPrintBaseKey;
+        const innerPrintName = MAPPING.print[innerPrintKey] || MAPPING.print[innerPrintBaseKey];
 
-            console.log(`📄 Наповнення: ${pages} стор → ${innerLeaves} аркушів × ${qty} прим. / ${fitInner} на SRA3 = ${totalInnerSheets} SRA3`);
-  
-            if (totalInnerSheets > 0) {
-                const matPrice = getTierPrice(innerMat, totalInnerSheets);
-                const prnPrice = getTierPrice(innerPrintName, totalInnerSheets);
-                const innerCost = totalInnerSheets * (matPrice + prnPrice);
-                totalCost += innerCost;
-                debugLines.push(`Папір (${innerMat}): ${totalInnerSheets} × ${matPrice} = ${(totalInnerSheets * matPrice).toFixed(2)} ₴`);
-                debugLines.push(`Друк (${innerPrintName}): ${totalInnerSheets} × ${prnPrice} = ${(totalInnerSheets * prnPrice).toFixed(2)} ₴`);
-                breakdownHTML += `
-                    <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
-                        <span>SRA3 на наповнення:</span>
-                        <strong>${totalInnerSheets} арк.</strong>
-                    </div>`;
+        let innerLeaves = 0;
+        if (type === 'staple' || type === 'glue') {
+            innerLeaves = pages / 2;
+        } else {
+            const isTwoSided = innerPrintBaseKey === '4+4' || innerPrintBaseKey === '1+1';
+            innerLeaves = isTwoSided ? pages / 2 : pages;
+        }
+
+        const getArticle = (matName, printKey) => {
+            const entry = window.priceBook[matName];
+            if (!entry || !entry.articles) return '';
+            return entry.articles[printKey.replace('-wcmy', '')] || '';
+        };
+
+        // Збираємо технічні рядки: унікальний матеріал+друк → кількість аркушів по тиражах
+        const techMap = new Map();
+        const addTech = (matName, printKey, printDisplay, qi, sheets) => {
+            const key = `${matName}|${printKey}`;
+            if (!techMap.has(key)) {
+                techMap.set(key, {
+                    matName,
+                    printDisplay,
+                    article: getArticle(matName, printKey),
+                    sheets: quantities.map(() => 0)
+                });
             }
-  
-            // ─── 2. ОБКЛАДИНКА ───────────────────────────────────────
+            techMap.get(key).sheets[qi] += sheets;
+        };
+
+        // Розраховуємо вартість кожного тиражу
+        const qtyCosts = quantities.map((qty, qi) => {
+            let totalCost = 0;
+
+            // Наповнення
+            const totalInnerSheets = Math.ceil((innerLeaves * qty) / fitInner);
+            if (totalInnerSheets > 0) {
+                totalCost += totalInnerSheets * getTierPrice(innerMat, totalInnerSheets);
+                totalCost += totalInnerSheets * getTierPrice(innerPrintName, totalInnerSheets);
+                addTech(innerMat, innerPrintKey, innerPrintBaseKey, qi, totalInnerSheets);
+            }
+
+            // Обкладинка
             if (type === 'staple' || type === 'glue') {
                 const totalCoverSheets = Math.ceil(qty / fitCover);
                 const covMat = document.getElementById('standard-cover-material').value;
                 const covPrintKey = document.getElementById('standard-cover-print').value;
                 const covPrint = MAPPING.print[covPrintKey];
                 const covLam = document.getElementById('standard-cover-lamination').value;
-
-                const covMatPrice = getTierPrice(covMat, totalCoverSheets);
-                const covPrnPrice = getTierPrice(covPrint, totalCoverSheets);
-                const covLamPrice = covLam !== 'none' ? getTierPrice(covLam, totalCoverSheets) : 0;
-                const coverCost = totalCoverSheets * (covMatPrice + covPrnPrice + covLamPrice);
-                totalCost += coverCost;
-
-                debugLines.push(`Обкладинка (${covMat}): ${totalCoverSheets} × ${covMatPrice} = ${(totalCoverSheets * covMatPrice).toFixed(2)} ₴`);
-                debugLines.push(`Друк обкл. (${covPrint}): ${totalCoverSheets} × ${covPrnPrice} = ${(totalCoverSheets * covPrnPrice).toFixed(2)} ₴`);
-                if (covLam !== 'none') debugLines.push(`Ламінування: ${totalCoverSheets} × ${covLamPrice} = ${(totalCoverSheets * covLamPrice).toFixed(2)} ₴`);
-
-                breakdownHTML += `
-                    <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
-                        <span>SRA3 на обкладинку:</span>
-                        <strong>${totalCoverSheets} арк.</strong>
-                    </div>`;
+                totalCost += totalCoverSheets * getTierPrice(covMat, totalCoverSheets);
+                totalCost += totalCoverSheets * getTierPrice(covPrint, totalCoverSheets);
+                if (covLam !== 'none') totalCost += totalCoverSheets * getTierPrice(covLam, totalCoverSheets);
+                addTech(covMat, covPrintKey, covPrintKey, qi, totalCoverSheets);
+                if (covLam !== 'none') addTech(covLam, 'lam', '', qi, totalCoverSheets);
             } else {
-                // Пружина — комплект вже включено в ціну брошурування
-                let customCoverSRA3 = 0, customBackingSRA3 = 0;
-
                 if (document.getElementById('spring-has-custom-cover').checked) {
-                    customCoverSRA3 = Math.ceil(qty / fitInner);
+                    const sheets = Math.ceil(qty / fitInner);
                     const mat = document.getElementById('spring-custom-cover-material').value;
-                    const prn = MAPPING.print[document.getElementById('spring-custom-cover-print').value];
+                    const prnKey = document.getElementById('spring-custom-cover-print').value;
                     const lam = document.getElementById('spring-custom-cover-lamination').value;
-                    totalCost += customCoverSRA3 * getTierPrice(mat, customCoverSRA3);
-                    totalCost += customCoverSRA3 * getTierPrice(prn, customCoverSRA3);
-                    if (lam !== 'none') totalCost += customCoverSRA3 * getTierPrice(lam, customCoverSRA3);
-                    breakdownHTML += `
-                        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
-                            <span>SRA3 Каст. обкладинка:</span>
-                            <strong>${customCoverSRA3} арк.</strong>
-                        </div>`;
+                    totalCost += sheets * (getTierPrice(mat, sheets) + getTierPrice(MAPPING.print[prnKey], sheets));
+                    if (lam !== 'none') totalCost += sheets * getTierPrice(lam, sheets);
+                    addTech(mat, prnKey, prnKey, qi, sheets);
+                    if (lam !== 'none') addTech(lam, 'lam', '', qi, sheets);
                 }
-                
                 if (document.getElementById('spring-has-custom-backing').checked) {
-                    customBackingSRA3 = Math.ceil(qty / fitInner);
+                    const sheets = Math.ceil(qty / fitInner);
                     const mat = document.getElementById('spring-custom-backing-material').value;
-                    const prn = MAPPING.print[document.getElementById('spring-custom-backing-print').value];
+                    const prnKey = document.getElementById('spring-custom-backing-print').value;
                     const lam = document.getElementById('spring-custom-backing-lamination').value;
-                    totalCost += customBackingSRA3 * getTierPrice(mat, customBackingSRA3);
-                    totalCost += customBackingSRA3 * getTierPrice(prn, customBackingSRA3);
-                    if (lam !== 'none') totalCost += customBackingSRA3 * getTierPrice(lam, customBackingSRA3);
-                    breakdownHTML += `
-                        <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
-                            <span>SRA3 Каст. підкладка:</span>
-                            <strong>${customBackingSRA3} арк.</strong>
-                        </div>`;
+                    totalCost += sheets * (getTierPrice(mat, sheets) + getTierPrice(MAPPING.print[prnKey], sheets));
+                    if (lam !== 'none') totalCost += sheets * getTierPrice(lam, sheets);
+                    addTech(mat, prnKey, prnKey, qi, sheets);
+                    if (lam !== 'none') addTech(lam, 'lam', '', qi, sheets);
                 }
             }
-  
-            // ─── 3. ЗБІРКА ───────────────────────────────────────────
+
+            // Збірка
             let bindingName = '';
             if (type === 'staple') bindingName = MAPPING.binding['staple'];
             else if (type === 'glue') bindingName = MAPPING.binding['glue'];
             else if (type === 'spring-plastic') {
-                // А3 формат — використовуємо ціну металевої А3 пружини
-                if (Math.max(w, h) > 297) bindingName = MAPPING.binding['spring-metal-a3'];
-                else bindingName = pages < 120 ? MAPPING.binding['spring-plastic-small'] : MAPPING.binding['spring-plastic-large'];
+                bindingName = Math.max(w, h) > 297 ? MAPPING.binding['spring-metal-a3']
+                    : pages < 120 ? MAPPING.binding['spring-plastic-small'] : MAPPING.binding['spring-plastic-large'];
             }
-            else if (type === 'spring-metal') bindingName = (Math.max(w, h) > 297) ? MAPPING.binding['spring-metal-a3'] : MAPPING.binding['spring-metal-a4'];
-            
-            const bindPrice = getTierPrice(bindingName, qty);
-            const bindCost = qty * bindPrice;
-            totalCost += bindCost;
-            debugLines.push(`Збірка (${bindingName}): ${qty} × ${bindPrice} = ${bindCost.toFixed(2)} ₴`);
-
-            // ─── ВИВІД ───────────────────────────────────────────────
-            console.group(`🧾 Тираж ${qty} шт. | Разом: ${totalCost.toFixed(2)} ₴`);
-            debugLines.forEach(l => console.log(l));
-            console.groupEnd();
-
-            // ─── ОПИС ЗАМОВЛЕННЯ ─────────────────────────────────────
-            const bindingLabels = {
-                'staple':        'На скобу',
-                'glue':          'Термобіндер (клей)',
-                'spring-plastic':'На пластикову пружину',
-                'spring-metal':  'На металеву пружину'
-            };
-            const orientation = w >= h ? 'Альбомна' : 'Книжна';
-
-            // Обкладинка
-            let coverDesc = '';
-            if (type === 'staple' || type === 'glue') {
-                const covMat = document.getElementById('standard-cover-material').value;
-                const covLam = document.getElementById('standard-cover-lamination').value;
-                const weightMatch = covMat.match(/(\d+)\s*г\/м/);
-                const weight = weightMatch ? weightMatch[1] + ' г/м²' : covMat;
-                const lamText = covLam !== 'none' ? `, ${covLam}` : ', без ламінування';
-                coverDesc = `Обкладинка: ${weight}${lamText}`;
-            } else {
-                // Пружина
-                const baseSet = document.getElementById('spring-base-set').value;
-                if (baseSet === 'plastic-white') coverDesc = 'Комплект: прозора обкладинка + білий щільний аркуш';
-                else if (baseSet === 'plastic-plastic') coverDesc = 'Комплект: прозора обкладинка + прозора підкладка';
-                else coverDesc = 'Без стандартного комплекту';
-
-                if (document.getElementById('spring-has-custom-cover').checked) {
-                    const mat = document.getElementById('spring-custom-cover-material').value;
-                    const lam = document.getElementById('spring-custom-cover-lamination').value;
-                    const lamText = lam !== 'none' ? `, ${lam}` : '';
-                    coverDesc += `<br>Кастомна обкладинка: ${mat}${lamText}`;
-                }
-                if (document.getElementById('spring-has-custom-backing').checked) {
-                    const mat = document.getElementById('spring-custom-backing-material').value;
-                    const lam = document.getElementById('spring-custom-backing-lamination').value;
-                    const lamText = lam !== 'none' ? `, ${lam}` : '';
-                    coverDesc += `<br>Кастомна підкладка: ${mat}${lamText}`;
-                }
+            else if (type === 'spring-metal') {
+                bindingName = (Math.max(w, h) > 297) ? MAPPING.binding['spring-metal-a3'] : MAPPING.binding['spring-metal-a4'];
             }
+            totalCost += qty * getTierPrice(bindingName, qty);
 
-            const totalStr = totalCost.toFixed(2);
-
-            resultsHTML += `
-                <div class="proposal-block" style="border:1px solid #ccc;padding:15px;margin-bottom:15px;border-radius:8px;background:#fff;">
-                    <div style="font-size:16px;font-weight:bold;margin-bottom:10px;border-bottom:1px solid #eee;padding-bottom:5px;">
-                        Тираж: ${qty} шт.
-                    </div>
-
-                    <div style="font-size:13px;color:#555;margin-bottom:12px;line-height:1.7;">
-                        <div>📎 ${bindingLabels[type] || type}</div>
-                        <div>📐 ${orientation} | ${w}×${h} мм</div>
-                        <div>📄 Наповнення: ${innerMat}, ${pages} стор.</div>
-                        <div>🖨 ${coverDesc}</div>
-                    </div>
-
-                    <div style="margin-bottom:10px;color:#777;border-top:1px dashed #eee;padding-top:10px;">${breakdownHTML}</div>
-
-                    <div style="color:#333;margin-top:10px;border-top:1px solid #eee;padding-top:10px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <span>Всього до сплати:</span>
-                            <strong style="font-size:18px;color:#2a7e2a;">${totalStr} ₴</strong>
-                        </div>
-                    </div>
-                </div>
-            `;
+            return totalCost;
         });
-  
-        resultBox.innerHTML = resultsHTML;
+
+        // Назва продукту
+        const formatMap = [[148, 210, 'А5'], [210, 297, 'А4'], [297, 420, 'А3']];
+        const sortedDims = [w, h].sort((a, b) => a - b);
+        const fmtMatch = formatMap.find(([sw, sh]) => Math.abs(sortedDims[0] - sw) <= 2 && Math.abs(sortedDims[1] - sh) <= 2);
+        const productName = fmtMatch ? `Брошура ${fmtMatch[2]} (${w}×${h} мм)` : `Буклет ${w}×${h} мм`;
+        const orientation = w >= h ? 'Альбомна' : 'Книжна';
+        const bindingLabels = {
+            'staple':         'На скобу',
+            'glue':           'Термобіндер (клей)',
+            'spring-plastic': 'На пластикову пружину',
+            'spring-metal':   'На металеву пружину'
+        };
+
+        // Секція обкладинки
+        let coverHTML = '';
+        if (type === 'staple' || type === 'glue') {
+            const covMat = document.getElementById('standard-cover-material').value;
+            const covPrintKey = document.getElementById('standard-cover-print').value;
+            const covLam = document.getElementById('standard-cover-lamination').value;
+            coverHTML = `
+                <div class="rb-section">
+                    <div class="rb-section-title">Обкладинка</div>
+                    <div class="rb-row"><span>Папір:</span><span>${covMat}</span></div>
+                    <div class="rb-row"><span>Друк:</span><span>${covPrintKey}</span></div>
+                    <div class="rb-row"><span>Ламінація:</span><span>${covLam !== 'none' ? covLam : 'без ламінування'}</span></div>
+                </div>`;
+        } else {
+            const baseSet = document.getElementById('spring-base-set').value;
+            const kitLabels = {
+                'plastic-white':   'Прозора обкладинка + Біла підкладка',
+                'plastic-plastic': 'Прозора обкладинка + Прозора підкладка',
+                'none':            'Без комплекту'
+            };
+            coverHTML = `<div class="rb-section"><div class="rb-section-title">Обкладинка</div>
+                <div class="rb-row"><span>Комплект:</span><span>${kitLabels[baseSet] || baseSet}</span></div>`;
+            if (document.getElementById('spring-has-custom-cover').checked) {
+                const mat = document.getElementById('spring-custom-cover-material').value;
+                const prnKey = document.getElementById('spring-custom-cover-print').value;
+                const lam = document.getElementById('spring-custom-cover-lamination').value;
+                coverHTML += `<div class="rb-subsection-title">Додаткова обкладинка:</div>
+                    <div class="rb-row"><span>Папір:</span><span>${mat}</span></div>
+                    <div class="rb-row"><span>Друк:</span><span>${prnKey}</span></div>
+                    <div class="rb-row"><span>Ламінація:</span><span>${lam !== 'none' ? lam : 'без'}</span></div>`;
+            }
+            if (document.getElementById('spring-has-custom-backing').checked) {
+                const mat = document.getElementById('spring-custom-backing-material').value;
+                const prnKey = document.getElementById('spring-custom-backing-print').value;
+                const lam = document.getElementById('spring-custom-backing-lamination').value;
+                coverHTML += `<div class="rb-subsection-title">Додаткова підкладка:</div>
+                    <div class="rb-row"><span>Папір:</span><span>${mat}</span></div>
+                    <div class="rb-row"><span>Друк:</span><span>${prnKey}</span></div>
+                    <div class="rb-row"><span>Ламінація:</span><span>${lam !== 'none' ? lam : 'без'}</span></div>`;
+            }
+            coverHTML += `</div>`;
+        }
+
+        const priceListHTML = quantities.map((qty, i) =>
+            `<div class="rb-price-row"><span>Тираж: ${qty} шт.</span><strong>${qtyCosts[i].toFixed(2)} ₴</strong></div>`
+        ).join('');
+
+        const techRowsHTML = Array.from(techMap.values()).map(({ matName, printDisplay, article, sheets }) => {
+            const printPart = printDisplay ? ` ${printDisplay}` : '';
+            const articlePart = article ? ` (арт. ${article})` : '';
+            const sheetsPart = sheets.map(s => `${s} арк.`).join(' | ');
+            return `<div class="rb-tech-row">SRA3 ${matName}${printPart}${articlePart} — ${sheetsPart}</div>`;
+        }).join('');
+
+        resultBox.innerHTML = `
+            <div class="result-block">
+                <div class="rb-title">${productName}</div>
+                <div class="rb-section rb-main-spec">
+                    <div class="rb-row"><span>Розмір:</span><span>${w}×${h} мм</span></div>
+                    <div class="rb-row"><span>Орієнтація:</span><span>${orientation}</span></div>
+                    <div class="rb-row"><span>Метод зшивки:</span><span>${bindingLabels[type] || type}</span></div>
+                </div>
+                ${coverHTML}
+                <div class="rb-section">
+                    <div class="rb-section-title">Наповнення</div>
+                    <div class="rb-row"><span>Папір:</span><span>${innerMat}</span></div>
+                    <div class="rb-row"><span>Друк:</span><span>${innerPrintBaseKey}</span></div>
+                    <div class="rb-row"><span>Сторінок:</span><span>${pages} шт.</span></div>
+                </div>
+                <div class="rb-price-section">
+                    ${priceListHTML}
+                </div>
+                <div class="rb-tech-section">
+                    <div class="rb-tech-title">Для розрахунку</div>
+                    ${techRowsHTML}
+                </div>
+            </div>
+        `;
     }
   
     loadMaterials();

@@ -185,3 +185,110 @@ select {
   font-size: 13px;
   margin-bottom: 10px;
 }
+
+/* ── Новий формат результату ── */
+.result-block {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.rb-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.rb-section {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed #eee;
+}
+
+.rb-main-spec {
+  font-size: 13px;
+  color: #555;
+}
+
+.rb-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.rb-subsection-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin: 8px 0 4px 10px;
+}
+
+.rb-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 3px;
+  padding-left: 10px;
+}
+
+.rb-row span:first-child {
+  color: #888;
+}
+
+.rb-price-section {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed #eee;
+}
+
+.rb-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+  margin-bottom: 5px;
+}
+
+.rb-price-row strong {
+  font-size: 17px;
+  color: #2e7d32;
+}
+
+.rb-tech-section {
+  margin-top: 4px;
+}
+
+.rb-tech-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #999;
+  margin-bottom: 6px;
+}
+
+.rb-tech-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: #aaa;
+  margin: 8px 0 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.rb-tech-row {
+  font-size: 12px;
+  color: #777;
+  font-family: monospace;
+  margin-bottom: 3px;
+  word-break: break-word;
+}
