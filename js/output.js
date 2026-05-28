@@ -96,7 +96,7 @@ function renderResults(results) {
             label:   `SRA3 ${covMat} ${covPrintKey}`,
             article: getArticle(covMat, covPrintKey),
             counts:  results.map(r => r.coverSRA3),
-            costs:   results.map(r => r.coverSRA3 * (getTierPrice(covMat, r.qty) + getTierPrice(covPrint, r.qty))),
+            costs:   results.map(r => r.coverSRA3 * (getTierPrice(covMat, r.coverSRA3) + getTierPrice(covPrint, r.coverSRA3))),
             unit:    'арк.'
         });
         if (covLam !== 'none') {
@@ -104,7 +104,7 @@ function renderResults(results) {
                 label:   covLam,
                 article: getBaseArticle(covLam),
                 counts:  results.map(r => r.coverSRA3),
-                costs:   results.map(r => r.coverSRA3 * getTierPrice(covLam, r.qty)),
+                costs:   results.map(r => r.coverSRA3 * getTierPrice(covLam, r.coverSRA3)),
                 unit:    'арк.'
             });
         }
@@ -118,7 +118,7 @@ function renderResults(results) {
                 counts:  results.map(r => r.customCover ? r.customCover.sheets : 0),
                 costs:   results.map(r => {
                     const s = r.customCover ? r.customCover.sheets : 0;
-                    return s * (getTierPrice(mat, r.qty) + getTierPrice(printName, r.qty));
+                    return s * (getTierPrice(mat, s) + getTierPrice(printName, s));
                 }),
                 unit:    'арк.'
             });
@@ -127,7 +127,7 @@ function renderResults(results) {
                     label:   lam,
                     article: getBaseArticle(lam),
                     counts:  results.map(r => r.customCover ? r.customCover.sheets : 0),
-                    costs:   results.map(r => (r.customCover ? r.customCover.sheets : 0) * getTierPrice(lam, r.qty)),
+                    costs:   results.map(r => (r.customCover ? r.customCover.sheets : 0) * getTierPrice(lam, r.customCover ? r.customCover.sheets : 0)),
                     unit:    'арк.'
                 });
             }
@@ -141,7 +141,7 @@ function renderResults(results) {
                 counts:  results.map(r => r.customBacking ? r.customBacking.sheets : 0),
                 costs:   results.map(r => {
                     const s = r.customBacking ? r.customBacking.sheets : 0;
-                    return s * (getTierPrice(mat, r.qty) + getTierPrice(printName, r.qty));
+                    return s * (getTierPrice(mat, s) + getTierPrice(printName, s));
                 }),
                 unit:    'арк.'
             });
@@ -150,7 +150,7 @@ function renderResults(results) {
                     label:   lam,
                     article: getBaseArticle(lam),
                     counts:  results.map(r => r.customBacking ? r.customBacking.sheets : 0),
-                    costs:   results.map(r => (r.customBacking ? r.customBacking.sheets : 0) * getTierPrice(lam, r.qty)),
+                    costs:   results.map(r => (r.customBacking ? r.customBacking.sheets : 0) * getTierPrice(lam, r.customBacking ? r.customBacking.sheets : 0)),
                     unit:    'арк.'
                 });
             }
@@ -162,7 +162,7 @@ function renderResults(results) {
         label:   `SRA3 ${innerMat} ${innerPrintKey}`,
         article: getArticle(innerMat, innerPrintKey),
         counts:  results.map(r => r.innerSRA3),
-        costs:   results.map(r => r.innerSRA3 * (getTierPrice(innerMat, r.qty) + getTierPrice(r.innerPrintName, r.qty))),
+        costs:   results.map(r => r.innerSRA3 * (getTierPrice(innerMat, r.innerSRA3) + getTierPrice(r.innerPrintName, r.innerSRA3))),
         unit:    'арк.'
     };
 
