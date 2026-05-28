@@ -1,8 +1,30 @@
 .calculator-wrapper {
-  max-width: 500px;
+  max-width: 1200px;
   font-family: 'Montserrat', sans-serif;
   color: #1a1a1a;
   padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+.calc-form, .calc-results {
+  min-width: 0;
+}
+
+.calc-results {
+  position: sticky;
+  top: 20px;
+}
+
+@media (max-width: 900px) {
+  .calculator-wrapper {
+    grid-template-columns: 1fr;
+  }
+  .calc-results {
+    position: static;
+  }
 }
 
 .form-group {
@@ -86,7 +108,7 @@ select {
 }
 
 .result-box {
-  margin-top: 30px;
+  margin-top: 0;
 }
 
 .proposal-block {

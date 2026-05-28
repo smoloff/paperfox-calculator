@@ -19,14 +19,6 @@ const MAPPING = {
     }
 };
 
-// Замінити на точні назви ламінацій з Google Sheets (група ПОКРИТТЯ)
-const ALLOWED_LAMINATIONS = [
-    'Ламінація - Матова (25 мкм)',
-    'Ламінація - Глянцева (25 мкм)',
-    'Ламінація - SoftTouch (25 мкм)',
-    'Ламінація - Anti-Scuff (32 мкм)'
-];
-
 const SRA3_W = 310;
 const SRA3_H = 440;
 const BLEED  = 4;

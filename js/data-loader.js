@@ -2,8 +2,35 @@ function parseCSV(text) {
     const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
     const result = [];
 
-    const splitLine = (line) =>
-        line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/^"|"$/g, '').trim());
+    const splitLine = (line) => {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            const next = line[i + 1];
+
+            if (ch === '"') {
+                if (inQuotes && next === '"') {
+                    // Екранована лапка ""
+                    current += '"';
+                    i++;
+                } else {
+                    // Початок/кінець лапок
+                    inQuotes = !inQuotes;
+                }
+            } else if (ch === ',' && !inQuotes) {
+                // Розділювач полів
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += ch;
+            }
+        }
+        result.push(current.trim());
+        return result;
+    };
 
     // Два рядки заголовків: об'єднуємо, перший пріоритетний
     const row1 = splitLine(lines[0]);
@@ -38,50 +65,47 @@ async function loadMaterials() {
         window.materials        = { paper: [], lamination: [] };
         window.materialPrintType = {};
 
-        // Діагностика першого рядка
-        const sampleRow = rows.find(r => r['Найменування номенклатури']);
-        if (sampleRow) {
-            console.log('📦 Зразок рядка:', sampleRow['Найменування номенклатури']);
-            Object.entries(sampleRow).forEach(([k, v]) => {
-                if (v && !isNaN(parseFloat(v.toString().replace(/\s/g, '').replace(',', '.')))) {
-                    console.log(`  "${k}" = "${v}"`);
-                }
-            });
-        }
+        const knownGroups = ['ПАПІР','КАРТОН','ДРУК','ПОКРИТТЯ','ПОСТДРУК','ВІЗИТКИ','САМОКЛЕЙКА'];
+        const PRICE_KEYS  = [1, 5, 10, 20, 40, 50, 100, 200, 400, 500, 1000];
 
         rows.forEach(row => {
-            const name = row['Найменування номенклатури'];
-            if (!name) return;
-
             const raw = row._raw;
 
-            const parsePrice = (val) => {
-                if (!val || val === '') return 0;
-                return parseFloat(val.toString().replace(/\s/g, '').replace(',', '.')) || 0;
-            };
-            const p = (key) => parsePrice(row[key] || row[key.replace('+', '')] || '0');
+            // Динамічно знаходимо колонку Групи
+            const groupIdx = raw.findIndex(cell => knownGroups.includes(cell?.trim()));
+            if (groupIdx === -1) return;
 
-            const group     = row['Група']     || '';
-            const printType = row['Тип друку'] || '';
-            const isWCMY    = printType.includes('W+CMY');
+            const group     = raw[groupIdx].trim();
+            const printType = raw[groupIdx + 1]?.trim() || '';
+            const name      = raw[groupIdx + 2]?.trim() || '';
+            if (!name) return;
+
+            const isWCMY = printType.includes('W+CMY');
+
+            // base article — перше непусте значення між col 5 і groupIdx
+            const base = raw.slice(5, groupIdx).find(v => v?.trim()) || '';
 
             const articles = {
                 '4+0':  raw[1] || '',
                 '4+4':  raw[2] || '',
                 '1+0':  raw[3] || '',
                 '1+1':  raw[4] || '',
-                'base': raw[6] || ''   // колонка G — для ламінації та брошурування
+                'base': base
             };
 
-            const priceEntry = {
-                1: p('1+'), 5: p('5+'), 10: p('10+'), 20: p('20+'),
-                40: p('40+'), 50: p('50+'), 100: p('100+'), 200: p('200+'),
-                400: p('400+'), 500: p('500+'), 1000: p('1000+'),
-                articles
+            const parsePrice = (val) => {
+                if (!val || val === '') return 0;
+                return parseFloat(val.toString().replace(/\s/g, '').replace(',', '.')) || 0;
             };
+
+            const priceStart = groupIdx + 3;
+            const priceEntry = { articles };
+            PRICE_KEYS.forEach((qty, i) => {
+                priceEntry[qty] = parsePrice(raw[priceStart + i]);
+            });
 
             // ДРУК: зберігаємо під назвою (W+CMY — з суфіксом)
-            if (group === 'ДРУК' || group.includes('ДРУК')) {
+            if (group.includes('ДРУК')) {
                 const bookKey = isWCMY ? `${name} (W+CMY)` : name;
                 if (!window.priceBook[bookKey]) window.priceBook[bookKey] = priceEntry;
                 return;
@@ -96,8 +120,8 @@ async function loadMaterials() {
                 window.materialPrintType[name] = isWCMY ? 'W+CMY' : 'CMYK';
             }
 
-            // Ламінація: тільки з дозволеного списку
-            if (group.includes('ПОКРИТТЯ') && ALLOWED_LAMINATIONS.includes(name)) {
+            // Ламінація: рулонна гаряча з групи ПОКРИТТЯ
+            if (group === 'ПОКРИТТЯ' && printType === 'Рулонна гаряча') {
                 window.materials.lamination.push(name);
             }
         });

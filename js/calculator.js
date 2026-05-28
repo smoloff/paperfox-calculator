@@ -129,11 +129,21 @@ function calculate() {
 
         // Обкладинка (скоба / клей)
         let coverSRA3 = 0;
+        let bigCost = 0;
         if (isStapleOrGlue) {
             coverSRA3 = Math.ceil(qty / fitCover);
             totalCost += coverSRA3 * getTierPrice(covMat,   coverSRA3);
             totalCost += coverSRA3 * getTierPrice(covPrint, coverSRA3);
             if (covLam !== 'none') totalCost += coverSRA3 * getTierPrice(covLam, coverSRA3);
+        }
+
+        if (type === 'staple') {
+            const coverWeight = getMaterialWeight(covMat);
+            if (coverWeight >= 160) {
+                const bigPrice = getTierPrice('Бігування', qty);
+                bigCost = qty * bigPrice;
+                totalCost += bigCost;
+            }
         }
 
         // Кастомна обкладинка / підкладка (пружина)
@@ -161,7 +171,7 @@ function calculate() {
 
         return {
             qty, totalCost,
-            innerSRA3, coverSRA3,
+            innerSRA3, coverSRA3, bigCost,
             covMat, covPrintKey, covLam,
             innerMat, innerPrintKey: innerPrintBaseKey, innerPrintName,
             pages, bindingName,

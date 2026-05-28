@@ -12,9 +12,12 @@ function getBaseArticle(name) {
     return entry.articles['base'] || '';
 }
 
-function formatTechLine({ label, article, counts, unit }) {
+function formatTechLine({ label, article, counts, unit, costs }) {
     const articlePart = article ? ` (арт. ${article})` : '';
-    const countsPart  = counts.map(c => `${c} ${unit}`).join(' | ');
+    const countsPart = counts.map((c, i) => {
+        const costStr = costs ? ` (${costs[i].toFixed(2)} ₴)` : '';
+        return `${c} ${unit}${costStr}`;
+    }).join(' | ');
     return `<div class="rb-tech-row">${label}${articlePart} — ${countsPart}</div>`;
 }
 
@@ -88,10 +91,12 @@ function renderResults(results) {
     const techCoverLines = [];
     if (type === 'staple' || type === 'glue') {
         const { covMat, covPrintKey, covLam } = r0;
+        const covPrint = covPrintKey ? MAPPING.print[covPrintKey] : null;
         techCoverLines.push({
             label:   `SRA3 ${covMat} ${covPrintKey}`,
             article: getArticle(covMat, covPrintKey),
             counts:  results.map(r => r.coverSRA3),
+            costs:   results.map(r => r.coverSRA3 * (getTierPrice(covMat, r.qty) + getTierPrice(covPrint, r.qty))),
             unit:    'арк.'
         });
         if (covLam !== 'none') {
@@ -99,16 +104,22 @@ function renderResults(results) {
                 label:   covLam,
                 article: getBaseArticle(covLam),
                 counts:  results.map(r => r.coverSRA3),
+                costs:   results.map(r => r.coverSRA3 * getTierPrice(covLam, r.qty)),
                 unit:    'арк.'
             });
         }
     } else {
         if (r0.customCover) {
             const { mat, printKey, lam } = r0.customCover;
+            const printName = MAPPING.print[printKey];
             techCoverLines.push({
                 label:   `SRA3 ${mat} ${printKey}`,
                 article: getArticle(mat, printKey),
                 counts:  results.map(r => r.customCover ? r.customCover.sheets : 0),
+                costs:   results.map(r => {
+                    const s = r.customCover ? r.customCover.sheets : 0;
+                    return s * (getTierPrice(mat, r.qty) + getTierPrice(printName, r.qty));
+                }),
                 unit:    'арк.'
             });
             if (lam !== 'none') {
@@ -116,16 +127,22 @@ function renderResults(results) {
                     label:   lam,
                     article: getBaseArticle(lam),
                     counts:  results.map(r => r.customCover ? r.customCover.sheets : 0),
+                    costs:   results.map(r => (r.customCover ? r.customCover.sheets : 0) * getTierPrice(lam, r.qty)),
                     unit:    'арк.'
                 });
             }
         }
         if (r0.customBacking) {
             const { mat, printKey, lam } = r0.customBacking;
+            const printName = MAPPING.print[printKey];
             techCoverLines.push({
                 label:   `SRA3 ${mat} ${printKey}`,
                 article: getArticle(mat, printKey),
                 counts:  results.map(r => r.customBacking ? r.customBacking.sheets : 0),
+                costs:   results.map(r => {
+                    const s = r.customBacking ? r.customBacking.sheets : 0;
+                    return s * (getTierPrice(mat, r.qty) + getTierPrice(printName, r.qty));
+                }),
                 unit:    'арк.'
             });
             if (lam !== 'none') {
@@ -133,6 +150,7 @@ function renderResults(results) {
                     label:   lam,
                     article: getBaseArticle(lam),
                     counts:  results.map(r => r.customBacking ? r.customBacking.sheets : 0),
+                    costs:   results.map(r => (r.customBacking ? r.customBacking.sheets : 0) * getTierPrice(lam, r.qty)),
                     unit:    'арк.'
                 });
             }
@@ -144,6 +162,7 @@ function renderResults(results) {
         label:   `SRA3 ${innerMat} ${innerPrintKey}`,
         article: getArticle(innerMat, innerPrintKey),
         counts:  results.map(r => r.innerSRA3),
+        costs:   results.map(r => r.innerSRA3 * (getTierPrice(innerMat, r.qty) + getTierPrice(r.innerPrintName, r.qty))),
         unit:    'арк.'
     };
 
@@ -152,8 +171,18 @@ function renderResults(results) {
         label:   bindingName,
         article: getBaseArticle(bindingName),
         counts:  results.map(r => r.qty),
+        costs:   results.map(r => r.qty * getTierPrice(bindingName, r.qty)),
         unit:    'шт.'
     };
+
+    const hasBig = r0.type === 'staple' && r0.bigCost > 0;
+    const techBigLine = hasBig ? {
+        label:   'Бігування',
+        article: getBaseArticle('Бігування'),
+        counts:  results.map(r => r.qty),
+        costs:   results.map(r => r.qty * getTierPrice('Бігування', r.qty)),
+        unit:    'шт.'
+    } : null;
 
     const techCoverHTML = techCoverLines.length > 0
         ? `<div class="rb-tech-subtitle">Обкладинка</div>${techCoverLines.map(formatTechLine).join('')}`
@@ -184,6 +213,7 @@ function renderResults(results) {
                 ${formatTechLine(techInnerLine)}
                 <div class="rb-tech-subtitle">Збірка</div>
                 ${formatTechLine(techBindingLine)}
+                ${techBigLine ? formatTechLine(techBigLine) : ''}
             </div>
         </div>
     `;
