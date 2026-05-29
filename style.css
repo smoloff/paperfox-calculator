@@ -218,12 +218,30 @@ select {
 }
 
 .rb-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a1a1a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 14px;
   padding-bottom: 10px;
   border-bottom: 1px solid #eee;
+}
+
+.rb-title-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  flex: 1;
+  min-width: 0;
+}
+
+.rb-title-right {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .rb-section {
@@ -345,4 +363,58 @@ select {
 #toast.toast-visible {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+/* ── Editable title + channel buttons ── */
+.editable-name {
+  outline: none;
+  border-bottom: 1px dashed transparent;
+  padding: 0 2px;
+  min-width: 24px;
+  transition: border-color 0.15s;
+}
+
+.editable-name:hover,
+.editable-name:focus {
+  border-bottom-color: #bbb;
+}
+
+.editable-name:empty::before {
+  content: attr(data-placeholder);
+  color: #aaa;
+}
+
+.clear-name-btn {
+  background: none;
+  border: none;
+  color: #bbb;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.clear-name-btn:hover {
+  color: #888;
+}
+
+.copy-channel-btn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  color: #888;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.copy-channel-btn:hover {
+  border-color: #999;
+  color: #444;
+  background: #f5f5f5;
 }
