@@ -57,7 +57,7 @@ function parseCSV(text) {
 async function loadMaterials() {
     const resultBox = document.getElementById('calc-result');
     try {
-        const response = await fetch(SHEET_CSV_URL);
+        const response = await fetchWithRetry(SHEET_CSV_URL);
         const data = await response.text();
         const rows = parseCSV(data);
 
