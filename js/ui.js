@@ -105,5 +105,18 @@ document.addEventListener('DOMContentLoaded', () => {
         calculate();
     });
 
+    document.getElementById('calc-result').addEventListener('click', async (e) => {
+        const target = e.target.closest('[data-copy-type]');
+        if (!target) return;
+        const type  = target.dataset.copyType;
+        const value = target.dataset.copyValue;
+        const ok = await copyToClipboard(value);
+        if (ok) {
+            showToast(type === 'name' ? 'Назва скопійована' : 'Артикул скопійовано');
+        } else {
+            showToast('Не вдалося скопіювати');
+        }
+    });
+
     loadMaterials();
 });

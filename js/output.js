@@ -12,13 +12,17 @@ function getBaseArticle(name) {
     return entry.articles['base'] || '';
 }
 
-function formatTechLine({ label, article, counts, unit, costs }) {
-    const articlePart = article ? ` (арт. ${article})` : '';
+function formatTechLine({ label, colorPart, article, counts, unit, costs }) {
+    const colorText  = colorPart ? ` ${colorPart}` : '';
+    const nameSpan   = `<span class="copy-target" data-copy-type="name" data-copy-value="${label}" title="Клік — копіювати назву">${label}</span>`;
+    const skuSpan    = article
+        ? ` <span class="copy-target" data-copy-type="sku" data-copy-value="${article}" title="Клік — копіювати артикул">(арт. ${article})</span>`
+        : '';
     const countsPart = counts.map((c, i) => {
         const costStr = costs ? ` (${costs[i].toFixed(2)} ₴)` : '';
         return `${c} ${unit}${costStr}`;
     }).join(' | ');
-    return `<div class="rb-tech-row">${label}${articlePart} — ${countsPart}</div>`;
+    return `<div class="rb-tech-row">${nameSpan}${colorText}${skuSpan} — ${countsPart}</div>`;
 }
 
 function renderResults(results) {
@@ -93,8 +97,9 @@ function renderResults(results) {
         const { covMat, covPrintKey, covLam } = r0;
         const covPrint = covPrintKey ? MAPPING.print[covPrintKey] : null;
         techCoverLines.push({
-            label:   `SRA3 ${covMat} ${covPrintKey}`,
-            article: getArticle(covMat, covPrintKey),
+            label:     `SRA3 ${covMat}`,
+            colorPart: covPrintKey,
+            article:   getArticle(covMat, covPrintKey),
             counts:  results.map(r => r.coverSRA3),
             costs:   results.map(r => r.coverSRA3 * (getTierPrice(covMat, r.coverSRA3) + getTierPrice(covPrint, r.coverSRA3))),
             unit:    'арк.'
@@ -113,9 +118,10 @@ function renderResults(results) {
             const { mat, printKey, lam } = r0.customCover;
             const printName = MAPPING.print[printKey];
             techCoverLines.push({
-                label:   `SRA3 ${mat} ${printKey}`,
-                article: getArticle(mat, printKey),
-                counts:  results.map(r => r.customCover ? r.customCover.sheets : 0),
+                label:     `SRA3 ${mat}`,
+                colorPart: printKey,
+                article:   getArticle(mat, printKey),
+                counts:    results.map(r => r.customCover ? r.customCover.sheets : 0),
                 costs:   results.map(r => {
                     const s = r.customCover ? r.customCover.sheets : 0;
                     return s * (getTierPrice(mat, s) + getTierPrice(printName, s));
@@ -136,9 +142,10 @@ function renderResults(results) {
             const { mat, printKey, lam } = r0.customBacking;
             const printName = MAPPING.print[printKey];
             techCoverLines.push({
-                label:   `SRA3 ${mat} ${printKey}`,
-                article: getArticle(mat, printKey),
-                counts:  results.map(r => r.customBacking ? r.customBacking.sheets : 0),
+                label:     `SRA3 ${mat}`,
+                colorPart: printKey,
+                article:   getArticle(mat, printKey),
+                counts:    results.map(r => r.customBacking ? r.customBacking.sheets : 0),
                 costs:   results.map(r => {
                     const s = r.customBacking ? r.customBacking.sheets : 0;
                     return s * (getTierPrice(mat, s) + getTierPrice(printName, s));
@@ -159,8 +166,9 @@ function renderResults(results) {
 
     // Секція НАПОВНЕННЯ
     const techInnerLine = {
-        label:   `SRA3 ${innerMat} ${innerPrintKey}`,
-        article: getArticle(innerMat, innerPrintKey),
+        label:     `SRA3 ${innerMat}`,
+        colorPart: innerPrintKey,
+        article:   getArticle(innerMat, innerPrintKey),
         counts:  results.map(r => r.innerSRA3),
         costs:   results.map(r => r.innerSRA3 * (getTierPrice(innerMat, r.innerSRA3) + getTierPrice(r.innerPrintName, r.innerSRA3))),
         unit:    'арк.'
