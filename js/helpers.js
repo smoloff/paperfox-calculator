@@ -25,6 +25,14 @@ function calcFit(pw, ph) {
     );
 }
 
+function getFormatLabel(w, h) {
+    const sorted = [w, h].sort((a, b) => a - b);
+    const match  = STANDARD_FORMATS.find(f =>
+        Math.abs(sorted[0] - f.width) <= 2 && Math.abs(sorted[1] - f.height) <= 2
+    );
+    return match ? match.label : null;
+}
+
 async function copyToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
         try {
@@ -132,7 +140,7 @@ function buildMessengerText(data) {
         `Вартість: ${totalCost.toFixed(2)} грн.`
     ]);
     return [
-        `**${titleName} ${data.productFormat}**`,
+        `**${titleName}${data.productFormat ? ' ' + data.productFormat : ''}**`,
         `Розмір: ${data.w}×${data.h} мм`,
         `Орієнтація: ${data.orientation}`,
         `Метод зшивки: ${data.bindingLabel}`,
@@ -155,7 +163,7 @@ function buildEmailHtml(data) {
         `Вартість: ${totalCost.toFixed(2)} грн.`
     ]);
     return [
-        `<b>${titleName} ${data.productFormat}</b>`,
+        `<b>${titleName}${data.productFormat ? ' ' + data.productFormat : ''}</b>`,
         `Розмір: ${data.w}×${data.h} мм`,
         `Орієнтація: ${data.orientation}`,
         `Метод зшивки: ${data.bindingLabel}`,
@@ -178,7 +186,7 @@ function buildEmailPlainText(data) {
         `Вартість: ${totalCost.toFixed(2)} грн.`
     ]);
     return [
-        `${titleName} ${data.productFormat}`,
+        `${titleName}${data.productFormat ? ' ' + data.productFormat : ''}`,
         `Розмір: ${data.w}×${data.h} мм`,
         `Орієнтація: ${data.orientation}`,
         `Метод зшивки: ${data.bindingLabel}`,

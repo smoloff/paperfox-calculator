@@ -32,13 +32,8 @@ function renderResults(results) {
     const { w, h, type, pages, innerMat, innerPrintKey, bindingName, springBaseSet } = r0;
 
     // ── Назва продукту ──
-    const formatMap  = [[148, 210, 'А5'], [210, 297, 'А4'], [297, 420, 'А3']];
-    const sortedDims = [w, h].sort((a, b) => a - b);
-    const fmtMatch   = formatMap.find(([sw, sh]) =>
-        Math.abs(sortedDims[0] - sw) <= 2 && Math.abs(sortedDims[1] - sh) <= 2
-    );
-    const productType   = fmtMatch ? 'Брошура' : 'Буклет';
-    const productFormat = fmtMatch ? fmtMatch[2] : `${w}×${h} мм`;
+    const productType   = 'Брошура';
+    const productFormat = getFormatLabel(w, h);
     const orientation  = w >= h ? 'Альбомна' : 'Книжна';
     const bindingLabels = {
         'staple':         'На скобу',
@@ -223,7 +218,7 @@ function renderResults(results) {
             <div class="rb-title">
                 <div class="rb-title-left">
                     <span class="editable-name" contenteditable="true" data-placeholder="${productType}">${customName}</span>
-                    &nbsp;${productFormat}
+                    ${productFormat ? `&nbsp;${productFormat}` : ''}
                     <button class="clear-name-btn" title="Скинути назву"${!customName ? ' style="display:none"' : ''}>×</button>
                 </div>
                 <div class="rb-title-right">
