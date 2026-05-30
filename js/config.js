@@ -22,3 +22,9 @@ const MAPPING = {
 const SRA3_W = 310;
 const SRA3_H = 440;
 const BLEED  = 4;
+
+const STANDARD_FORMATS = [
+    { label: 'А5', width: 148, height: 210 },
+    { label: 'А4', width: 210, height: 297 },
+    { label: 'А3', width: 297, height: 420 }
+];
