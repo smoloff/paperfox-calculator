@@ -1,3 +1,5 @@
+window.customProductName = '';
+
 // ── Заповнення dropdown-ів після завантаження даних ──
 function populateSelects() {
     const createOptions = (arr, defaultOpt = null) => {
@@ -106,15 +108,52 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('calc-result').addEventListener('click', async (e) => {
-        const target = e.target.closest('[data-copy-type]');
-        if (!target) return;
-        const type  = target.dataset.copyType;
-        const value = target.dataset.copyValue;
-        const ok = await copyToClipboard(value);
-        if (ok) {
-            showToast(type === 'name' ? 'Назва скопійована' : 'Артикул скопійовано');
-        } else {
-            showToast('Не вдалося скопіювати');
+        const copyTarget = e.target.closest('[data-copy-type]');
+        if (copyTarget) {
+            const type  = copyTarget.dataset.copyType;
+            const value = copyTarget.dataset.copyValue;
+            const ok = await copyToClipboard(value);
+            showToast(ok ? (type === 'name' ? 'Назва скопійована' : 'Артикул скопійовано') : 'Не вдалося скопіювати');
+            return;
+        }
+
+        if (e.target.classList.contains('clear-name-btn')) {
+            window.customProductName = '';
+            calculate();
+            return;
+        }
+
+        const channelBtn = e.target.closest('[data-channel]');
+        if (channelBtn) {
+            const channel = channelBtn.dataset.channel;
+            if (!window.lastTemplateData) return;
+            if (channel === 'messenger') {
+                const text = buildMessengerText(window.lastTemplateData);
+                const ok = await copyToClipboard(text);
+                showToast(ok ? 'Скопійовано для месенджера' : 'Не вдалося скопіювати');
+            } else if (channel === 'email') {
+                const html  = buildEmailHtml(window.lastTemplateData);
+                const plain = buildEmailPlainText(window.lastTemplateData);
+                const ok = await copyHtmlAndPlain(html, plain);
+                showToast(ok ? 'Скопійовано для email' : 'Не вдалося скопіювати');
+            }
+            return;
+        }
+    });
+
+    document.getElementById('calc-result').addEventListener('input', (e) => {
+        if (!e.target.classList.contains('editable-name')) return;
+        window.customProductName = e.target.textContent.trim();
+        const clearBtn = e.target.closest('.rb-title-left')?.querySelector('.clear-name-btn');
+        if (clearBtn) clearBtn.style.display = window.customProductName ? '' : 'none';
+        if (window.lastTemplateData) window.lastTemplateData.customName = window.customProductName;
+    });
+
+    document.getElementById('calc-result').addEventListener('keydown', (e) => {
+        if (!e.target.classList.contains('editable-name')) return;
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.target.blur();
         }
     });
 

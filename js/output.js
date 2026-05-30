@@ -37,7 +37,8 @@ function renderResults(results) {
     const fmtMatch   = formatMap.find(([sw, sh]) =>
         Math.abs(sortedDims[0] - sw) <= 2 && Math.abs(sortedDims[1] - sh) <= 2
     );
-    const productName  = fmtMatch ? `Брошура ${fmtMatch[2]} (${w}×${h} мм)` : `Буклет ${w}×${h} мм`;
+    const productType   = fmtMatch ? 'Брошура' : 'Буклет';
+    const productFormat = fmtMatch ? fmtMatch[2] : `${w}×${h} мм`;
     const orientation  = w >= h ? 'Альбомна' : 'Книжна';
     const bindingLabels = {
         'staple':         'На скобу',
@@ -196,9 +197,40 @@ function renderResults(results) {
         ? `<div class="rb-tech-subtitle">Обкладинка</div>${techCoverLines.map(formatTechLine).join('')}`
         : '';
 
+    const customName = window.customProductName || '';
+    window.lastTemplateData = {
+        customName,
+        productType,
+        productFormat,
+        w, h,
+        orientation,
+        bindingLabel:  bindingLabels[type] || type,
+        type,
+        covMat:        r0.covMat,
+        covPrintKey:   r0.covPrintKey,
+        covLam:        r0.covLam,
+        springBaseSet: r0.springBaseSet,
+        customCover:   r0.customCover,
+        customBacking: r0.customBacking,
+        innerMat,
+        innerPrintKey,
+        pages,
+        quantities:    results.map(({ qty, totalCost }) => ({ qty, totalCost }))
+    };
+
     resultBox.innerHTML = `
         <div class="result-block">
-            <div class="rb-title">${productName}</div>
+            <div class="rb-title">
+                <div class="rb-title-left">
+                    <span class="editable-name" contenteditable="true" data-placeholder="${productType}">${customName}</span>
+                    &nbsp;${productFormat}
+                    <button class="clear-name-btn" title="Скинути назву"${!customName ? ' style="display:none"' : ''}>×</button>
+                </div>
+                <div class="rb-title-right">
+                    <button class="copy-channel-btn" data-channel="messenger">Месенджер</button>
+                    <button class="copy-channel-btn" data-channel="email">Email</button>
+                </div>
+            </div>
             <div class="rb-section rb-main-spec">
                 <div class="rb-row"><span>Розмір:</span><span>${w}×${h} мм</span></div>
                 <div class="rb-row"><span>Орієнтація:</span><span>${orientation}</span></div>

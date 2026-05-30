@@ -93,3 +93,116 @@ async function fetchWithRetry(url, options = {}) {
 
     throw new Error(`Не вдалося завантажити після ${maxAttempts} спроб: ${lastError.message}`);
 }
+
+function printSideLabel(key) {
+    return (parseInt(key.split('+')[1], 10) === 0 ? 'односторонній ' : 'двосторонній ') + key;
+}
+
+function buildCoverLines(data) {
+    if (data.type === 'staple' || data.type === 'glue') {
+        const lines = [
+            `Папір: ${data.covMat}`,
+            `Друк: ${printSideLabel(data.covPrintKey)}`
+        ];
+        if (data.covLam && data.covLam !== 'none') lines.push(`Ламінація: ${data.covLam}`);
+        return lines;
+    }
+    const kitLabels = {
+        'plastic-white':   'Прозора обкладинка + Біла підкладка',
+        'plastic-plastic': 'Прозора обкладинка + Прозора підкладка',
+        'none':            'Без комплекту'
+    };
+    const lines = [`Комплект: ${kitLabels[data.springBaseSet] || data.springBaseSet}`];
+    if (data.customCover) {
+        lines.push(`Кастомна обкладинка: ${data.customCover.mat} ${printSideLabel(data.customCover.printKey)}`);
+        if (data.customCover.lam !== 'none') lines.push(`Ламінація обкладинки: ${data.customCover.lam}`);
+    }
+    if (data.customBacking) {
+        lines.push(`Кастомна підкладка: ${data.customBacking.mat} ${printSideLabel(data.customBacking.printKey)}`);
+        if (data.customBacking.lam !== 'none') lines.push(`Ламінація підкладки: ${data.customBacking.lam}`);
+    }
+    return lines;
+}
+
+function buildMessengerText(data) {
+    const titleName  = (data.customName || data.productType).toUpperCase();
+    const coverLines = buildCoverLines(data);
+    const qtyLines   = data.quantities.flatMap(({ qty, totalCost }) => [
+        `Тираж: ${qty} шт.`,
+        `Вартість: ${totalCost.toFixed(2)} грн.`
+    ]);
+    return [
+        `**${titleName} ${data.productFormat}**`,
+        `Розмір: ${data.w}×${data.h} мм`,
+        `Орієнтація: ${data.orientation}`,
+        `Метод зшивки: ${data.bindingLabel}`,
+        '**Обкладинка**',
+        ...coverLines,
+        '**Наповнення**',
+        `Папір: ${data.innerMat}`,
+        `Друк: ${printSideLabel(data.innerPrintKey)}`,
+        `Сторінок: ${data.pages} шт.`,
+        ...qtyLines,
+        'Термін: 1 робочий день'
+    ].join('\n');
+}
+
+function buildEmailHtml(data) {
+    const titleName  = (data.customName || data.productType).toUpperCase();
+    const coverLines = buildCoverLines(data);
+    const qtyLines   = data.quantities.flatMap(({ qty, totalCost }) => [
+        `Тираж: ${qty} шт.`,
+        `Вартість: ${totalCost.toFixed(2)} грн.`
+    ]);
+    return [
+        `<b>${titleName} ${data.productFormat}</b>`,
+        `Розмір: ${data.w}×${data.h} мм`,
+        `Орієнтація: ${data.orientation}`,
+        `Метод зшивки: ${data.bindingLabel}`,
+        '<b>Обкладинка</b>',
+        ...coverLines,
+        '<b>Наповнення</b>',
+        `Папір: ${data.innerMat}`,
+        `Друк: ${printSideLabel(data.innerPrintKey)}`,
+        `Сторінок: ${data.pages} шт.`,
+        ...qtyLines,
+        'Термін: 1 робочий день'
+    ].join('<br>\n');
+}
+
+function buildEmailPlainText(data) {
+    const titleName  = (data.customName || data.productType).toUpperCase();
+    const coverLines = buildCoverLines(data);
+    const qtyLines   = data.quantities.flatMap(({ qty, totalCost }) => [
+        `Тираж: ${qty} шт.`,
+        `Вартість: ${totalCost.toFixed(2)} грн.`
+    ]);
+    return [
+        `${titleName} ${data.productFormat}`,
+        `Розмір: ${data.w}×${data.h} мм`,
+        `Орієнтація: ${data.orientation}`,
+        `Метод зшивки: ${data.bindingLabel}`,
+        'Обкладинка',
+        ...coverLines,
+        'Наповнення',
+        `Папір: ${data.innerMat}`,
+        `Друк: ${printSideLabel(data.innerPrintKey)}`,
+        `Сторінок: ${data.pages} шт.`,
+        ...qtyLines,
+        'Термін: 1 робочий день'
+    ].join('\n');
+}
+
+async function copyHtmlAndPlain(html, plain) {
+    try {
+        await navigator.clipboard.write([
+            new ClipboardItem({
+                'text/html':  new Blob([html],  { type: 'text/html' }),
+                'text/plain': new Blob([plain], { type: 'text/plain' })
+            })
+        ]);
+        return true;
+    } catch (_) {
+        return copyToClipboard(plain);
+    }
+}
